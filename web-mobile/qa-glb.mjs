@@ -21,3 +21,7 @@ assert.ok(animations.length>=1,'At least one clip');
 assert.ok(animations.some(a=>/walk|run|trot|gallop/i.test(a.name||'')),'Missing real gait clip');
 console.log('PASS: fetched original GLB '+data.length+' bytes; '+skins.length+' skins, '+animations.length+' clips');
 console.log('Animations: '+names);
+
+console.log('INSPECT_DEER_NODES:',JSON.stringify(gltf.nodes.map((n,i)=>({i,name:n.name,children:n.children,translation:n.translation,rotation:n.rotation,scale:n.scale})).filter((n,i)=>gltf.skins.some(sk=>sk.joints.includes(n.i)))));
+console.log('INSPECT_DEER_CLIPS:',JSON.stringify(gltf.animations.map(a=>({name:a.name,channels:a.channels.length,targetBones:a.channels.filter(c=>c.target.path==='rotation').slice(0,40).map(c=>gltf.nodes[c.target.node]?.name)}))));
+console.log('INSPECT_DEER_MESH:',JSON.stringify(gltf.meshes?.map(m=>({name:m.name,primitives:m.primitives.length}))));
