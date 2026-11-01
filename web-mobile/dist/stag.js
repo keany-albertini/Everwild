@@ -13,6 +13,27 @@ const amber=new T.MeshStandardMaterial({color:0xcbbd91,roughness:.5});
 const antler=new T.MeshStandardMaterial({color:0x97846b,roughness:.85});
 const magic=new T.MeshStandardMaterial({color:0x80c5b5,emissive:0x256a62,emissiveIntensity:1.35,roughness:.58});
 const sphere=new T.SphereGeometry(1,14,10);
+// Deterministic warm fur microtexture, generated locally and shared by all deer.
+let furReady=false;
+function prepareFur(){
+ if(furReady||typeof document==='undefined')return;
+ furReady=true;
+ const c=document.createElement('canvas');c.width=c.height=256;
+ const ctx=c.getContext('2d');if(!ctx)return;
+ ctx.fillStyle='#d2c4a9';ctx.fillRect(0,0,256,256);
+ let seed=28461;const rand=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296};
+ for(let i=0;i<5800;i++){
+  const x=rand()*256,y=rand()*256;
+  ctx.strokeStyle=rand()>.5?'rgba(86,62,41,.16)':'rgba(251,236,198,.23)';
+  ctx.lineWidth=.3+rand()*.75;ctx.beginPath();ctx.moveTo(x,y);
+  ctx.lineTo(x+(rand()-.5)*2,y+2+rand()*9);ctx.stroke();
+ }
+ const t=new T.CanvasTexture(c);t.colorSpace=T.SRGBColorSpace;
+ t.wrapS=t.wrapT=T.RepeatWrapping;t.repeat.set(2,2);t.anisotropy=4;
+ coat.map=t;flank.map=t;cream.map=t;
+ coat.needsUpdate=flank.needsUpdate=cream.needsUpdate=true;
+}
+
 const toV=(x,y,z)=>new T.Vector3(x,y,z);
 
 function oval(parent,material,position,scale,rz=0){
@@ -25,7 +46,7 @@ function limbSegment(parent,material,a,b,r0,r1,sides=7){
  const m=new T.Mesh(new T.CylinderGeometry(r1,r0,v.length(),sides,1),material);
  m.position.copy(p).add(q).multiplyScalar(.5);
  m.quaternion.setFromUnitVectors(toV(0,1,0),v.normalize());
- m.castShadow=true;parent.add(m);return m;
+ m.castShadow=false;parent.add(m);return m;
 }
 function line(parent,material,coords,r=.012){
  const curve=new T.CatmullRomCurve3(coords.map(p=>toV(...p)));
@@ -90,6 +111,7 @@ function makeSkinnedLeg(parent,x,z,back=false){
 
 /** Build a 3D fantasy stag with a real four-leg skeleton, not a sprite. */
 export function createStag(){
+ prepareFur();
  const root=new T.Group();root.name='Everwild_Stag_Guardian';
  const body=new T.Group();root.add(body);
  oval(body,coat,[0,1.39,-.05],[.47,.47,.98]);
