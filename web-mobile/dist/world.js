@@ -27,6 +27,7 @@ export async function createWorld(scene){
  const bushMat=new T.MeshStandardMaterial({map:textures.nature2,alphaTest:.35,side:T.DoubleSide,roughness:1});for(let i=0;i<35;i++){const x=i===0?-1:(rand()-.5)*90,z=i===0?-2:(rand()-.5)*90;const g=new T.Group();g.position.set(x,height(x,z),z);for(let j=0;j<3;j++){const m=new T.Mesh(new T.PlaneGeometry(2.1,1.6),bushMat);m.position.y=.65;m.rotation.y=j*Math.PI/3;g.add(m)}scene.add(g);const n={id:'bush'+i,kind:'bush',amount:10,mesh:g,x,z,r:0};g.children.forEach(m=>m.userData.node=n);nodes.push(n)}
  const water=new T.Mesh(new T.CircleGeometry(7,64),new T.MeshPhysicalMaterial({color:0x536f6a,metalness:.2,roughness:.22,transparent:true,opacity:.85}));water.rotation.x=-Math.PI/2;water.position.set(15,height(15,-12)+.12,-12);scene.add(water);const spring={id:'water',kind:'water',amount:Infinity,mesh:water,x:15,z:-12,r:0};water.userData.node=spring;nodes.push(spring);
  // Rigged and animated 3D wildlife: coat, horns, skinning, head and limb bones.
+ await prepareStagAsset();
  for(let i=0;i<4;i++){
   let x=8+i*12,z=-15-i*8;
   for(let tries=0;tries<18;tries++){
