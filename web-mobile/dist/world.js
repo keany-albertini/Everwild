@@ -64,7 +64,7 @@ export async function createWorld(scene){
    const motion=stepStagAI(a,player,colliders,t,dt);
    a.mesh.position.set(a.x,height(a.x,a.z),a.z);
    a.mesh.rotation.y=motion.heading;
-   a.animation.update(t,dt,motion.animation,a.phase);
+   a.animation.update(t,dt,motion.animation,a.phase,motion.speed);
 
   }
  }
