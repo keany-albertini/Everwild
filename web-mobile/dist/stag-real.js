@@ -3,7 +3,7 @@ import { GLTFLoader } from './loaders/GLTFLoader.js';
 import { clone as cloneSkinned } from './utils/SkeletonUtils.js';
 
 // Anatomically modelled, UV-textured, skinned deer; not the previous primitive-mesh stag.
-// Source binary is a public repository snapshot; original art is attributed below.
+// External prototype mesh from a public repository snapshot; provenance must be verified for commercial distribution.
 // As an external asset it is cached once per session, then SkeletonUtils clones its skins.
 const ASSET_URL = 'https://raw.githubusercontent.com/Alexander-Jordan/mitt-spel-om-bibeln/eedee2ecb19019f90bad7aa71cc9679aa0665bb9/assets/models/animals/deer/deer_male.glb';
 let template = null;
@@ -75,6 +75,7 @@ export function createStag() {
   animal.traverse(o => {
     if(o.isMesh) {
       o.castShadow = true; o.receiveShadow = true;
+      o.material=Array.isArray(o.material)?o.material.map(m=>m.clone()):o.material.clone();
       const mats=Array.isArray(o.material)?o.material:[o.material];
       for(const m of mats) {
         if(!m || !m.isMeshStandardMaterial)continue;
