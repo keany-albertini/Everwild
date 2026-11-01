@@ -1,6 +1,7 @@
 import * as T from './vendor/three.module.min.js';
 import { GLTFLoader } from './loaders/GLTFLoader.js';
 import { clone as cloneSkinned } from './utils/SkeletonUtils.js';
+import {createGallopClip,gallopTimeScale,gallopBob} from './stag-gallop.js';
 
 // Anatomically modelled, UV-textured, skinned deer; not the previous primitive-mesh stag.
 // External prototype mesh from a public repository snapshot; provenance must be verified for commercial distribution.
@@ -88,8 +89,9 @@ export function createStag() {
   });
   const rigBones=[];
   animal.traverse(o => {if(o.isBone)rigBones.push(o)});
-  const head = rigBones.find(b=>/^(head|skull|tete)/i.test(b.name))
-    || rigBones.find(b=>/(head|skull)/i.test(b.name)) || null;
+  // GLB deer uses Rigify names like DEF-head, not plain 'head'.
+  const head = rigBones.find(b=>(b.userData?.name||b.name)==='DEF-head')
+    || rigBones.find(b=>/^(?:DEF[-_])?(?:head|skull)/i.test(b.userData?.name||b.name)) || null;
   // Crown is independent of the source antlers. Its own node follows the source's head
   // bone where the source rig exposes one; otherwise it follows the whole animal root.
   const crown = createArcaneCrown(head || animal);
@@ -102,7 +104,9 @@ export function createStag() {
   const clips = template.animations;
   const idleClip = findClip(clips,['idle','stand','breathe','rest'],clips[0]);
   const walkClip = findClip(clips,['walk','gait','step'],clips[0]);
-  const runClip = findClip(clips,['run','gallop','sprint','trot'],walkClip);
+  // Author the bounding gait on the original skinned anatomical limb joints.
+  // The supplied GLB has only idle/walk; do not fake the run by speeding walk.
+  const runClip = createGallopClip(rigBones);
   const grazeClip = findClip(clips,['eat','graze','feed'],idleClip);
   const hitClip = findClip(clips,['hit','hurt','damage'],null);
   const deathClip = findClip(clips,['death','dead','die'],null);
@@ -114,14 +118,14 @@ export function createStag() {
     actions.set(clip,a);
   }
   let selected = null, dead = 0;
-  function update(t,dt,state='idle',phase=0) {
+  function update(t,dt,state='idle',phase=0,metersPerSecond=0) {
     const target = state==='idle' && Math.sin(t*.31+phase)>.72 ? 'graze' : state;
     // Never keep a breathing/walking animation running through a corpse pose.
     const clip = target==='dead' ? deathClip : (clipFor[target] || idleClip);
     if(clip!==selected) {
       const old=actions.get(selected), next=actions.get(clip);
       if(old && old!==next)old.fadeOut(.25);
-      if(next){next.reset().setEffectiveTimeScale(target==='run'&&clip===walkClip?2.0:1).fadeIn(.25).play();}
+      if(next){next.reset().setEffectiveTimeScale(target==='run'?gallopTimeScale(metersPerSecond):1).fadeIn(.20).play();}
       selected=clip;
     }
     if(target==='dead') {
@@ -133,14 +137,16 @@ export function createStag() {
         a.setLoop(T.LoopOnce,1);a.clampWhenFinished=true;
       }
     } else {
-      dead=0;pivot.rotation.z=0;pivot.position.y=0;
+      dead=0;pivot.rotation.z=0;
       const a=actions.get(clip);
-      if(a)a.setEffectiveTimeScale(target==='run'&&clip===walkClip?2.0:1);
+      if(a)a.setEffectiveTimeScale(target==='run'?gallopTimeScale(metersPerSecond):1);
+      // Tiny aerodynamic suspension, synchronized to the actual gallop cycle.
+      pivot.position.y=target==='run'&&a?gallopBob(a.time):0;
     }
     mixer.update(Math.max(0,Math.min(.07,dt)));
     crown.userData.runeGlow.emissiveIntensity=(target==='dead'?.1:1.15)+.25*Math.sin(t*1.7+phase);
     crown.rotation.z=Math.sin(t*.7+phase)*.008;
   }
   update(0,0,'idle');
-  return { mesh:root, update, bones:rigBones, mixer, clipNames:clips.map(c=>c.name), hasSkinnedMesh:true };
+  return { mesh:root, update, bones:rigBones, mixer, clipNames:[...clips.map(c=>c.name),runClip.name], gallopClip:runClip, hasSkinnedMesh:true };
 }
