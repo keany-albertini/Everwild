@@ -1,5 +1,5 @@
 import * as T from './vendor/three.module.min.js';
-import {createStag} from './stag.js';
+import {prepareStagAsset,createStag} from './stag-real.js';
 export const height=(x,z)=>Math.sin(x*.055)*1.5+Math.cos(z*.045)*1.2+Math.sin((x+z)*.09)*.45;
 export async function createWorld(scene){
  const loader=new T.TextureLoader(),names=['ground','bark','stone','birch','leaves','nature1','nature2'];
