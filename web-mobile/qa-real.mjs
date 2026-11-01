@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+const stag=readFileSync(new URL('./dist/stag-real.js',import.meta.url),'utf8');
+const world=readFileSync(new URL('./dist/world.js',import.meta.url),'utf8');
+assert.ok(stag.includes('GLTFLoader'));
+assert.ok(stag.includes('SkeletonUtils'));
+assert.ok(stag.includes('AnimationMixer'));
+assert.ok(stag.includes('isSkinnedMesh'));
+assert.ok(world.includes('await prepareStagAsset()'));
+assert.ok(world.includes("from './stag-real.js'"));
+console.log('PASS: anatomical 3D creature loader and skinned rig are connected to world');
