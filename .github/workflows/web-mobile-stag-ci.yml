@@ -29,3 +29,5 @@ jobs:
           node web-mobile/qa.mjs
           node web-mobile/qa-real.mjs
           node web-mobile/qa-motion.mjs
+      - name: Validate published 3D animal binary
+        run: node web-mobile/qa-glb.mjs
