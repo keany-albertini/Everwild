@@ -1,0 +1,31 @@
+name: Everwild mobile — wildlife integration
+on:
+  push:
+    branches: [feature/rigged-fantasy-stag]
+  pull_request:
+    branches: [web-mobile-3d]
+  workflow_dispatch:
+jobs:
+  check-and-test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify JavaScript syntax
+        run: |
+          node --check web-mobile/dist/main.js
+          node --check web-mobile/dist/world.js
+          node --check web-mobile/dist/stag-real.js
+          node --check web-mobile/dist/stag-motion.js
+          node --check web-mobile/dist/loaders/GLTFLoader.js
+          node --check web-mobile/dist/utils/SkeletonUtils.js
+          node --check web-mobile/dist/utils/BufferGeometryUtils.js
+      - name: Survival economy and wildlife logic
+        run: |
+          node web-mobile/qa.mjs
+          node web-mobile/qa-real.mjs
+          node web-mobile/qa-motion.mjs
