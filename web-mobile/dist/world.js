@@ -65,5 +65,5 @@ export async function createWorld(scene){
    a.animation.update(t,dt,flee?'run':actualSpeed>.16?'walk':'idle',a.phase);
   }
  }
-
+};
 }
