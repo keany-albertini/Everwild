@@ -22,8 +22,20 @@ assert.ok(animations.some(a=>/walk|run|trot|gallop/i.test(a.name||'')),'Missing 
 console.log('PASS: fetched original GLB '+data.length+' bytes; '+skins.length+' skins, '+animations.length+' clips');
 console.log('Animations: '+names);
 
-console.log('INSPECT_DEER_NODES:',JSON.stringify(gltf.nodes.map((n,i)=>({i,name:n.name,children:n.children,translation:n.translation,rotation:n.rotation,scale:n.scale})).filter((n,i)=>gltf.skins.some(sk=>sk.joints.includes(n.i)))));
-console.log('INSPECT_DEER_CLIPS:',JSON.stringify(gltf.animations.map(a=>({name:a.name,channels:a.channels.length,targetBones:a.channels.filter(c=>c.target.path==='rotation').slice(0,40).map(c=>gltf.nodes[c.target.node]?.name)}))));
-console.log('INSPECT_DEER_MESH:',JSON.stringify(gltf.meshes?.map(m=>({name:m.name,primitives:m.primitives.length}))));
-console.log('INSPECT_DEF_BONES:',JSON.stringify(gltf.skins[0].joints.map(i=>({i,name:gltf.nodes[i]?.name})).filter(x=>/^(DEF-|root$)/.test(x.name||''))));
-console.log('INSPECT_GAIT_BONES:',JSON.stringify(gltf.nodes.map((n,i)=>({i,name:n.name,translation:n.translation,rotation:n.rotation})).filter(x=>/^(DEF-|root$)/.test(x.name||'')&& /(thigh|lower_leg|hind_foot|upper_arm|forearm|fore_foot|hoof|toe|spine|neck|head|pelvis|root)/i.test(x.name)).map(x=>({i:x.i,name:x.name,rotation:x.rotation?.map(n=>+n.toFixed(3))}))));
+
+const requiredSkinningBones=[
+ 'DEF-upper_arm.L','DEF-forearm.L','DEF-forefoot.L','DEF-f_hoof.L',
+ 'DEF-upper_arm.R','DEF-forearm.R','DEF-forefoot.R','DEF-f_hoof.R',
+ 'DEF-thigh.L','DEF-lower_leg.L','DEF-hind_foot.L','DEF-r_hoof.L',
+ 'DEF-thigh.R','DEF-lower_leg.R','DEF-hind_foot.R','DEF-r_hoof.R',
+ 'DEF-head','DEF-neck.001','DEF-spine.004'
+];
+const joints=new Set(gltf.skins.flatMap(s=>s.joints).map(i=>gltf.nodes[i]?.name));
+for(const name of requiredSkinningBones){
+ assert.ok(joints.has(name),'Gallop has no weighted skinning bone: '+name);
+}
+assert.ok(gltf.animations.some(a=>a.name==='deer_male_idle'),'Source idle clip');
+assert.ok(gltf.animations.some(a=>a.name==='deer_male_walk'),'Source walk clip');
+assert.ok(!gltf.animations.some(a=>/gallop|run/i.test(a.name||'')),
+ 'Gallop is an original Everwild JS clip, not a source GLB clip');
+console.log('PASS: 19 required anatomical deer skinning bones verified in original GLB');
