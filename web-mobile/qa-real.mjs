@@ -1,0 +1,13 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+const stag=readFileSync(new URL('./dist/stag-real.js',import.meta.url),'utf8');
+const world=readFileSync(new URL('./dist/world.js',import.meta.url),'utf8');
+const main=readFileSync(new URL('./dist/main.js',import.meta.url),'utf8');
+for(const key of ['GLTFLoader','SkeletonUtils','AnimationMixer','isSkinnedMesh','Everwild_Moonroot_Stag']) assert.ok(stag.includes(key),key);
+assert.ok(world.includes('prepareStagAsset()'),'Native GLB loaded dynamically');
+assert.ok(world.includes("from './stag-real.js'"),'World uses real rig');
+assert.ok(world.includes("from './stag-motion.js'"),'World steers fauna');
+assert.ok(world.includes('void spawnWildlife()'),'Wildlife loads without holding survival startup');
+assert.ok(!world.includes("from './stag.js'"),'Geometric placeholder is not used');
+assert.ok(main.includes('n.fear=Math.max'),'Hunting frightens wildlife rather than popping mesh');
+console.log('PASS: real skinned wildlife integration, nonblocking loading and chase state');

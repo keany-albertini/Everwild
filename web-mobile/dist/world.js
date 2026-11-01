@@ -1,5 +1,6 @@
 import * as T from './vendor/three.module.min.js';
-import {createStag} from './stag.js';
+import {prepareStagAsset,createStag} from './stag-real.js';
+import {stepStagAI} from './stag-motion.js';
 export const height=(x,z)=>Math.sin(x*.055)*1.5+Math.cos(z*.045)*1.2+Math.sin((x+z)*.09)*.45;
 export async function createWorld(scene){
  const loader=new T.TextureLoader(),names=['ground','bark','stone','birch','leaves','nature1','nature2'];
@@ -27,50 +28,44 @@ export async function createWorld(scene){
  const bushMat=new T.MeshStandardMaterial({map:textures.nature2,alphaTest:.35,side:T.DoubleSide,roughness:1});for(let i=0;i<35;i++){const x=i===0?-1:(rand()-.5)*90,z=i===0?-2:(rand()-.5)*90;const g=new T.Group();g.position.set(x,height(x,z),z);for(let j=0;j<3;j++){const m=new T.Mesh(new T.PlaneGeometry(2.1,1.6),bushMat);m.position.y=.65;m.rotation.y=j*Math.PI/3;g.add(m)}scene.add(g);const n={id:'bush'+i,kind:'bush',amount:10,mesh:g,x,z,r:0};g.children.forEach(m=>m.userData.node=n);nodes.push(n)}
  const water=new T.Mesh(new T.CircleGeometry(7,64),new T.MeshPhysicalMaterial({color:0x536f6a,metalness:.2,roughness:.22,transparent:true,opacity:.85}));water.rotation.x=-Math.PI/2;water.position.set(15,height(15,-12)+.12,-12);scene.add(water);const spring={id:'water',kind:'water',amount:Infinity,mesh:water,x:15,z:-12,r:0};water.userData.node=spring;nodes.push(spring);
  // Rigged and animated 3D wildlife: coat, horns, skinning, head and limb bones.
- for(let i=0;i<4;i++){
-  let x=8+i*12,z=-15-i*8;
-  for(let tries=0;tries<18;tries++){
-   if(!colliders.some(c=>Math.hypot(c.x-x,c.z-z)<c.r+2))break;
-   x+=2.5+rand()*1.5;z+=1.5+rand()*2;
-  }
-  const stag=createStag(),m=stag.mesh;
-  m.position.set(x,height(x,z),z);
-  scene.add(m);
-  const n={id:'deer'+i,kind:'deer',amount:2,hp:60,mesh:m,animation:stag,x,z,homeX:x,homeZ:z,r:1,phase:i*1.73,heading:0};
-  m.traverse(child=>{if(child.isMesh)child.userData.node=n});
-  nodes.push(n);animals.push(n);
+ let stagReady=false,stagLoading=true,stagError=null;
+ // Start the survival world immediately; wildlife is inserted when its model finishes loading.
+ async function spawnWildlife(){
+  try{
+   await Promise.race([
+    prepareStagAsset(),
+    new Promise((_,reject)=>setTimeout(()=>reject(new Error('Cerf 3D : délai de chargement dépassé')),12000))
+   ]);
+   for(let i=0;i<4;i++){
+    let x=8+i*12,z=-15-i*8;
+    for(let tries=0;tries<18;tries++){
+     if(!colliders.some(c=>Math.hypot(c.x-x,c.z-z)<c.r+2))break;
+     x+=2.5+rand()*1.5;z+=1.5+rand()*2;
+    }
+    const stag=createStag(),m=stag.mesh;
+    m.position.set(x,height(x,z),z);
+    scene.add(m);
+    const n={id:'deer'+i,kind:'deer',amount:2,hp:60,mesh:m,animation:stag,x,z,homeX:x,homeZ:z,r:1,phase:i*1.73,heading:0,vx:0,vz:0,fear:0};
+    m.traverse(child=>{if(child.isMesh)child.userData.node=n});
+    nodes.push(n);animals.push(n);
+   }
+   stagReady=true;
+   console.info('[Everwild] Four native animated forest deer spawned');
+  }catch(err){
+   stagError=String(err?.message||err);
+   console.warn('[Everwild] Wildlife unavailable; survival world remains playable',err);
+  }finally{stagLoading=false}
  }
+ void spawnWildlife();
  function addFire(x,z){const g=new T.Group();g.position.set(x,height(x,z),z);for(let i=0;i<9;i++){const m=new T.Mesh(new T.IcosahedronGeometry(.22,1),stone);m.position.set(Math.cos(i*6.28/9)*.6,.1,Math.sin(i*6.28/9)*.6);g.add(m)}for(let i=0;i<4;i++){const m=new T.Mesh(new T.CylinderGeometry(.08,.1,1.1,6),bark);m.rotation.z=Math.PI/2;m.rotation.y=i*.8;m.position.y=.16;g.add(m)}const light=new T.PointLight(0xffa849,5,10);light.position.y=.6;g.add(light);const flame=new T.Mesh(new T.ConeGeometry(.25,.75,7),new T.MeshBasicMaterial({color:0xffb45e,transparent:true,opacity:.8}));flame.position.y=.5;g.add(flame);scene.add(g);return g}
- return {nodes,colliders,animals,textures,water,addFire,deplete(n){n.mesh.visible=false;if(n.kind==='wood'){matrix.scale.set(0,0,0);matrix.updateMatrix();for(let i=n.firstLeaf;i<n.lastLeaf;i++)canopy.setMatrixAt(i,matrix.matrix);canopy.instanceMatrix.needsUpdate=true}},update(t,dt,player){
+ return {nodes,colliders,animals,get stagReady(){return stagReady},get stagLoading(){return stagLoading},get stagError(){return stagError},textures,water,addFire,deplete(n){n.mesh.visible=false;if(n.kind==='wood'){matrix.scale.set(0,0,0);matrix.updateMatrix();for(let i=n.firstLeaf;i<n.lastLeaf;i++)canopy.setMatrixAt(i,matrix.matrix);canopy.instanceMatrix.needsUpdate=true}},update(t,dt,player){
   water.material.opacity=.78+Math.sin(t)*.04;
   for(const a of animals){
-   if(a.hp<=0){a.mesh.position.y=height(a.x,a.z);a.animation.update(t,dt,'dead',a.phase);continue}
-   const dx=a.x-player.x,dz=a.z-player.z,d=Math.hypot(dx,dz);
-   const flee=d<11;
-   const roam=Math.sin(t*.11+a.phase)*.75+a.phase*1.7;
-   const angle=flee?Math.atan2(dx,dz):roam;
-   const active=flee||Math.sin(t*.48+a.phase*3)>.18;
-   const speed=flee?3.8:active?.57:0;
-   let nx=a.x+Math.sin(angle)*speed*dt,nz=a.z+Math.cos(angle)*speed*dt;
-   // Avoid placing animated wildlife inside trees and rocks.
-   for(const c of colliders){
-    if(c.amount<=0)continue;
-    const cx=nx-c.x,cz=nz-c.z,dist=Math.hypot(cx,cz),min=c.r+.7;
-    if(dist<min){nx=c.x+cx/Math.max(.01,dist)*min;nz=c.z+cz/Math.max(.01,dist)*min}
-   }
-   if(Math.hypot(nx-a.homeX,nz-a.homeZ)>31&&!flee){
-    nx=a.x+(a.homeX-a.x)*Math.min(.6*dt,1);
-    nz=a.z+(a.homeZ-a.z)*Math.min(.6*dt,1);
-   }
-   nx=T.MathUtils.clamp(nx,-98,98);nz=T.MathUtils.clamp(nz,-98,98);
-   const vx=nx-a.x,vz=nz-a.z,actualSpeed=Math.hypot(vx,vz)/Math.max(dt,.0001);
-   a.x=nx;a.z=nz;a.mesh.position.set(nx,height(nx,nz),nz);
-   if(actualSpeed>.04){
-    const heading=Math.atan2(vx,vz);
-    a.heading+=Math.atan2(Math.sin(heading-a.heading),Math.cos(heading-a.heading))*Math.min(1,dt*5);
-   }
-   a.mesh.rotation.y=a.heading;
-   a.animation.update(t,dt,flee?'run':actualSpeed>.16?'walk':'idle',a.phase);
+   const motion=stepStagAI(a,player,colliders,t,dt);
+   a.mesh.position.set(a.x,height(a.x,a.z),a.z);
+   a.mesh.rotation.y=motion.heading;
+   a.animation.update(t,dt,motion.animation,a.phase,motion.speed);
+
   }
  }
 };
