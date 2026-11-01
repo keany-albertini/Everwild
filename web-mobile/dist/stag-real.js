@@ -23,12 +23,13 @@ function tube(parent, path, material, radius) {
 }
 function createArcaneCrown(parent) {
   const crown = new T.Group(); crown.name = 'Everwild_Moonroot_Crown'; parent.add(crown);
+  const runeGlow=luminous.clone();crown.userData.runeGlow=runeGlow;
   for (const s of [-1, 1]) {
     const branch = [[s*.13,.06,0],[s*.18,.24,-.02],[s*.31,.42,-.08],[s*.44,.57,-.12]];
     tube(crown, branch, antlerBone, .024);
     tube(crown, [[s*.22,.26,-.04],[s*.32,.35,.12],[s*.39,.49,.18]], antlerBone, .012);
     tube(crown, [[s*.30,.42,-.08],[s*.48,.54,-.02],[s*.55,.69,-.05]], antlerBone, .012);
-    tube(crown, [[s*.13,.08,0],[s*.18,.22,-.02],[s*.25,.31,-.055]], luminous, .006);
+    tube(crown, [[s*.13,.08,0],[s*.18,.22,-.02],[s*.25,.31,-.055]], runeGlow, .006);
     jewel(crown, [s*.44,.57,-.12], .034);
     jewel(crown, [s*.55,.69,-.05], .02);
   }
@@ -115,7 +116,8 @@ export function createStag() {
   let selected = null, dead = 0;
   function update(t,dt,state='idle',phase=0) {
     const target = state==='idle' && Math.sin(t*.31+phase)>.72 ? 'graze' : state;
-    const clip = clipFor[target] || idleClip;
+    // Never keep a breathing/walking animation running through a corpse pose.
+    const clip = target==='dead' ? deathClip : (clipFor[target] || idleClip);
     if(clip!==selected) {
       const old=actions.get(selected), next=actions.get(clip);
       if(old && old!==next)old.fadeOut(.25);
@@ -136,7 +138,7 @@ export function createStag() {
       if(a)a.setEffectiveTimeScale(target==='run'&&clip===walkClip?2.0:1);
     }
     mixer.update(Math.max(0,Math.min(.07,dt)));
-    luminous.emissiveIntensity=1.15+.25*Math.sin(t*1.7+phase);
+    crown.userData.runeGlow.emissiveIntensity=(target==='dead'?.1:1.15)+.25*Math.sin(t*1.7+phase);
     crown.rotation.z=Math.sin(t*.7+phase)*.008;
   }
   update(0,0,'idle');
