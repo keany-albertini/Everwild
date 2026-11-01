@@ -33,3 +33,5 @@ jobs:
           node web-mobile/qa-gallop.mjs
       - name: Validate published 3D animal binary
         run: node web-mobile/qa-glb.mjs
+      - name: Validate actual imported deer skeletal gallop
+        run: node web-mobile/qa-gallop-glb.mjs
