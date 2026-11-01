@@ -1,5 +1,6 @@
 import * as T from './vendor/three.module.min.js';
 import {prepareStagAsset,createStag} from './stag-real.js';
+import {stepStagAI} from './stag-motion.js';
 export const height=(x,z)=>Math.sin(x*.055)*1.5+Math.cos(z*.045)*1.2+Math.sin((x+z)*.09)*.45;
 export async function createWorld(scene){
  const loader=new T.TextureLoader(),names=['ground','bark','stone','birch','leaves','nature1','nature2'];
@@ -46,33 +47,11 @@ export async function createWorld(scene){
  return {nodes,colliders,animals,stagReady,textures,water,addFire,deplete(n){n.mesh.visible=false;if(n.kind==='wood'){matrix.scale.set(0,0,0);matrix.updateMatrix();for(let i=n.firstLeaf;i<n.lastLeaf;i++)canopy.setMatrixAt(i,matrix.matrix);canopy.instanceMatrix.needsUpdate=true}},update(t,dt,player){
   water.material.opacity=.78+Math.sin(t)*.04;
   for(const a of animals){
-   if(a.hp<=0){a.mesh.position.y=height(a.x,a.z);a.animation.update(t,dt,'dead',a.phase);continue}
-   const dx=a.x-player.x,dz=a.z-player.z,d=Math.hypot(dx,dz);
-   const flee=d<11;
-   const roam=Math.sin(t*.11+a.phase)*.75+a.phase*1.7;
-   const angle=flee?Math.atan2(dx,dz):roam;
-   const active=flee||Math.sin(t*.48+a.phase*3)>.18;
-   const speed=flee?3.8:active?.57:0;
-   let nx=a.x+Math.sin(angle)*speed*dt,nz=a.z+Math.cos(angle)*speed*dt;
-   // Avoid placing animated wildlife inside trees and rocks.
-   for(const c of colliders){
-    if(c.amount<=0)continue;
-    const cx=nx-c.x,cz=nz-c.z,dist=Math.hypot(cx,cz),min=c.r+.7;
-    if(dist<min){nx=c.x+cx/Math.max(.01,dist)*min;nz=c.z+cz/Math.max(.01,dist)*min}
-   }
-   if(Math.hypot(nx-a.homeX,nz-a.homeZ)>31&&!flee){
-    nx=a.x+(a.homeX-a.x)*Math.min(.6*dt,1);
-    nz=a.z+(a.homeZ-a.z)*Math.min(.6*dt,1);
-   }
-   nx=T.MathUtils.clamp(nx,-98,98);nz=T.MathUtils.clamp(nz,-98,98);
-   const vx=nx-a.x,vz=nz-a.z,actualSpeed=Math.hypot(vx,vz)/Math.max(dt,.0001);
-   a.x=nx;a.z=nz;a.mesh.position.set(nx,height(nx,nz),nz);
-   if(actualSpeed>.04){
-    const heading=Math.atan2(vx,vz);
-    a.heading+=Math.atan2(Math.sin(heading-a.heading),Math.cos(heading-a.heading))*Math.min(1,dt*5);
-   }
-   a.mesh.rotation.y=a.heading;
-   a.animation.update(t,dt,flee?'run':actualSpeed>.16?'walk':'idle',a.phase);
+   const motion=stepStagAI(a,player,colliders,t,dt);
+   a.mesh.position.set(a.x,height(a.x,a.z),a.z);
+   a.mesh.rotation.y=motion.heading;
+   a.animation.update(t,dt,motion.animation,a.phase);
+
   }
  }
 };
