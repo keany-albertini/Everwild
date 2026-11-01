@@ -21,6 +21,7 @@ jobs:
           node --check web-mobile/dist/world.js
           node --check web-mobile/dist/stag-real.js
           node --check web-mobile/dist/stag-motion.js
+          node --check web-mobile/dist/stag-gallop.js
           node --check web-mobile/dist/loaders/GLTFLoader.js
           node --check web-mobile/dist/utils/SkeletonUtils.js
           node --check web-mobile/dist/utils/BufferGeometryUtils.js
@@ -29,5 +30,6 @@ jobs:
           node web-mobile/qa.mjs
           node web-mobile/qa-real.mjs
           node web-mobile/qa-motion.mjs
+          node web-mobile/qa-gallop.mjs
       - name: Validate published 3D animal binary
         run: node web-mobile/qa-glb.mjs
