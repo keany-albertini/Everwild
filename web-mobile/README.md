@@ -1,39 +1,31 @@
-# Everwild — forêt des brumes (web mobile 3D)
+# Everwild — forêt des brumes (prototype WebGL mobile)
 
-Première tranche jouable indépendante de la base Godot existante. Three.js 0.180.0 (MIT), JavaScript modulaire et ressources locales. Aucun compte de jeu ni serveur requis. Pas de ressource distante nécessaire au fonctionnement.
+Une tranche jouable de survie 3D en navigateur (Three.js 0.180, WebGL 2) avec exploration, collecte, artisanat, faim/soif, chasse, feux et sauvegarde locale. La direction artistique demeure médiéval-fantastique semi-réaliste. Ceci n'est **pas** un jeu AAA achevé.
 
-## Jouer
+## Jouer / tester
+Servir `web-mobile/dist/` avec un serveur statique, par exemple depuis `web-mobile` : `python3 -m http.server 8080 --directory dist`. Dans le navigateur : `http://localhost:8080`. En mobile, utiliser une URL HTTP(S) accessible au téléphone, avec WebGL 2. Ouvrir directement `index.html` via `file://` ne fonctionne pas avec les modules.
 
-Servir le dossier `dist/` avec un serveur HTTP statique (ex. `python3 -m http.server 8080 --directory dist`). Ouvrir le lien dans Chrome Android ou un navigateur de bureau compatible WebGL 2. Le fichier ne s'exécute pas directement sous `file://` à cause des modules JavaScript.
+Téléphone : joystick gauche, glisser sur le décor à droite pour regarder, courir/sauter/récolter. PC : ZQSD/WASD, E pour interagir, Maj pour courir, Espace sauter, I sac, Échap pause.
 
-Mobile : joystick gauche, glisser sur le décor pour regarder, Récolter pour exploiter la cible, Saut et Courir. Paysage recommandé. PC : WASD/ZQSD, glisser pour regarder, E pour récolter, Maj pour courir, Espace pour sauter, I pour le sac, 1–4 pour les outils, Échap pour la pause.
+## Faune 3D — branche feature/rigged-fantasy-stag
+- L'ancien cerf construit avec sphères et cylindres reste dans `dist/stag.js` comme archive, mais **n'est plus utilisé par le monde**.
+- `dist/stag-real.js` charge un véritable modèle GLB (maillage, peaux, os et animations) depuis une URL GitHub externe figée, cloné avec `SkeletonUtils`; des ramures Moonroot légèrement lumineuses sont ajoutées.
+- `dist/stag-motion.js` pilote la fuite face au joueur, l'évitement des obstacles, la marche lente, le repos et le retour dans son territoire.
+- Le chargement du GLB est asynchrone, limité à 12 secondes : si le modèle est indisponible, le jeu de survie démarre quand même, sans cerfs, au lieu de rester bloqué.
+- **Limite d'animation vérifiée :** les paramètres d'import Godot de la source déclarent des animations `deer_male_idle` et `deer_male_walk`, mais pas de galop. La fuite accélère actuellement une marche, elle ne doit pas être présentée comme une animation native de course. La chute après la chasse utilise une pose de repli si le modèle n'a pas de clip de mort.
+- Les interactions de chasse à la lance, récupération de viande et de peaux et l'état des ressources épuisées sont conservés.
 
-## Cette version
+## Licence de l'animal
+La version de travail utilise un **modèle tiers récupéré dans un dépôt GitHub public**. La présence sur GitHub ne suffit pas à autoriser sa redistribution. L'auteur original et la licence de cette conversion doivent être confirmés avant toute diffusion commerciale. Il existe une alternative documentée CC0 chez CDmir (*Old Deer Male*, OpenGameArt, .blend avec rig/animations), à convertir en GLB si le modèle actuel ne peut être licencié. Voir `MOONROOT_STAG.md`.
 
-- Terrain 3D en relief, arbres et rochers texturés, feuillage alpha, brume, éclairage et ombres.
-- Collisions horizontales avec troncs et roches, gravité et saut.
-- Bois et pierre à mains nues ; fibres et baies sur les buissons ; minerai de fer avec une pioche.
-- Hache, pioche et lance fabriquées avec des coûts réels. Récolte plus efficace avec l'outil adapté.
-- Cerfs fantastiques **entièrement en 3D** avec 4 pattes en meshes skinnés (12 os), os du cou/tête, bois ramifiés, pelage procédural, marques magiques discrètes, animations idle/marche/course/mort, évitement des obstacles et fuite ; chasse à la lance, viande et peaux ; feu de camp et cuisson.
-- Vie, endurance, faim, soif, poids ; eau à la source. Sauvegarde locale automatique toutes les 30 secondes et manuelle. Continuer recharge les ressources épuisées, outils, statistiques et feux.
-- Trois résolutions de rendu, commandes tactiles, interface compacte.
+## Tests
+Depuis la racine du dépôt :
+- `node web-mobile/qa.mjs` : économie/survie
+- `node web-mobile/qa-motion.mjs` : déplacement, obstacles, fuite, mort
+- `node web-mobile/qa-real.mjs` : branchement du véritable modèle squeletté
+- `node web-mobile/qa-glb.mjs` : téléchargement et inspection des skins/clips du GLB ; **nécessite un accès réseau**
+- Les vérifications syntaxiques et les tests sont inscrits dans `.github/workflows/web-mobile-stag-ci.yml`.
 
-## Validation et limites
+**Tests non réalisés ici :** chargement réel sur Chrome Android, rendu GPU, qualité de skinning, clipping des bois, performances FPS et textures. Une vraie animation de galop, une animation de mort et des textures PBR haut de gamme restent à produire/valider.
 
-`npm test` vérifie les règles de récolte, l'exigence de pioche, les coûts de fabrication, l'épuisement des ressources, la nourriture, l'endurance et la restauration des sauvegardes. Les tests incluent aussi le rig du cerf, la déformation des pattes, les cycles de marche/course et la pose de mort. Les fichiers JavaScript passent le contrôle syntaxique Node.
-
-Le navigateur de QA de cette session a WebGL désactivé. Le démarrage de l'interface et la récolte vers l'inventaire sont vérifiés dans un banc de test qui remplace uniquement le renderer (banc non livré). Le rendu GPU, les performances, le toucher multipoint réel et la compatibilité Android physique restent à confirmer. Aucune promesse de 60 FPS.
-
-Il s'agit d'un prototype jouable, pas d'un jeu AAA achevé. Cerfs 3D créés procéduralement et animés par notre rig (il ne s'agit pas du fichier Blender « Old Deer Male », dont les clips n'ont pas été importés ni contrôlés en moteur) ; outils géométriques temporaires, pas de bras humains animés. Pas encore de construction de maisons, ennemis, multijoueur, terrain destructible ou monde à biomes. Le minerai est récoltable mais la forge n'est pas encore intégrée. Le feu utilise une flamme simplifiée. Les arbres épuisés disparaissent, sans animation d'abattage. Le repos et la cuisson sont instantanés. Mort : retour à la clairière avec inventaire conservé.
-
-## Sources des ressources
-
-Textures de sol, écorce, bouleau, roche et feuillage générées pour ce projet avec l'outil de création d'images OpenAI. Brief : atlas quatre matériaux forestiers photoréalistes et feuillage de chêne détouré, palette désaturée. Fougères, buissons, icônes d'outils et cerfs : ressources générées lors des étapes précédentes de Survival Test 1. Aucun asset d'ARK ou du jeu Everwild de Rare n'est utilisé. Bibliothèque Three.js sous licence MIT incluse dans `dist/vendor/THREE-LICENSE.txt`.
-
-Les fichiers `dist/main.js`, `world.js`, `stag.js`, `economy.js` séparent l'orchestration, le monde et les règles de survie. `dist/` contient la version navigateur prête à servir. `prepare.cjs` était un script de préparation local et n'est pas nécessaire à l'exécution.
-
-## Rig du cerf fantastique
-
-`dist/stag.js` construit un cerf 3D autoportant sans asset distant et sans dépendance Blender : 4 `SkinnedMesh` (3 os chacun), un cou et une tête articulés, pelage granuleux généré en `CanvasTexture` et ramures sculptées. Le moteur change les animations selon l'activité : veille/broutage, marche diagonale, fuite en course et chute après chasse. Pas de garantie de performance sur chaque téléphone : vérifier WebGL 2, la stabilité des ombres et la consommation mémoire sur appareil réel.
-
-Le modèle libre CC0 *Old Deer Male* (CDmir, OpenGameArt) a été étudié comme référence de rig, mais **n'est pas inclus** : ses animations sont annoncées dans un `.blend` et n'ont pas été directement inspectées/exportées. Le cerf présent dans la version web est original et indépendant.
+Les textures de forêt et icônes sont des ressources du prototype ; Three.js est distribué avec sa licence MIT dans le dossier `dist/vendor`. Aucun contenu d'ARK n'a été copié.
