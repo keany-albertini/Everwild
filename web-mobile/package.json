@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "three": "^0.180.0"
+  },
+  "type": "module",
+  "scripts": {
+    "test": "node qa.mjs"
+  }
+}
